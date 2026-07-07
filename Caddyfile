@@ -1,0 +1,20 @@
+# Replace domain.com with your real domain. Caddy fetches & renews a Let's
+# Encrypt certificate automatically (make sure the domain's DNS A record points
+# at this server and ports 80/443 are open).
+
+domain.com {
+	# Route the MCP endpoint (and its health check) to the Node service.
+	# The MCP server listens on POST /mcp, so we forward the /mcp path through.
+	handle /mcp* {
+		reverse_proxy mcp:3000
+	}
+
+	handle /healthz {
+		reverse_proxy mcp:3000
+	}
+
+	# Everything else: nothing to serve here.
+	handle {
+		respond "Not found" 404
+	}
+}

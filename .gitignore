@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+service-account.json
+*-service-account.json
+credentials*.json
+gcp-key*.json

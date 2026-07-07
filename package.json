@@ -1,0 +1,30 @@
+{
+  "name": "seo-mcp",
+  "version": "1.0.0",
+  "description": "Remote MCP server exposing Google Search Console (GSC) and Google Analytics 4 (GA4) data to the team's Claude clients.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@google-analytics/admin": "^9.2.0",
+    "@google-analytics/data": "^6.1.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1",
+    "googleapis": "^173.0.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

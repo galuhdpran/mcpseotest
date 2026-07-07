@@ -1,0 +1,13 @@
+node_modules
+dist
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*-service-account.json
+service-account.json
+credentials*.json
+gcp-key*.json
+README.md
