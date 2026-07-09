@@ -6,7 +6,7 @@ Analytics 4** data. Deploy it once at `https://domain.com/mcp`, hand each
 teammate a bearer token, and they can query GSC & GA4 from Claude.
 
 - **Transport:** Streamable HTTP (stateless), the current MCP standard
-- **Auth to the endpoint:** shared bearer token(s)
+- **Auth to the endpoint:** shared bearer token(s) for CLI/Desktop, **plus** an optional built-in OAuth server so browser custom connectors on claude.ai can connect
 - **Auth to Google:** OAuth central account (recommended for agencies) **or** a service account
 - **Runtime:** Node 20+ / TypeScript, `@modelcontextprotocol/sdk` v1
 
@@ -95,6 +95,7 @@ Edit `.env`:
 
 - `MCP_AUTH_TOKENS` — one or more bearer tokens (comma-separated). Generate with `openssl rand -hex 32`. Give a different token to each teammate so you can revoke individually.
 - `MCP_ALLOWED_HOSTS` — your public host as clients send it. Behind HTTPS on your domain that's just `domain.com` (no port). For local testing use `localhost:3000,127.0.0.1:3000`.
+- **Browser OAuth (optional)** — only needed to add the server via the *Add custom connector* dialog in the claude.ai browser app (that dialog requires OAuth; CLI/Desktop don't need this). Set `MCP_PUBLIC_URL` (this server's public origin, e.g. `https://domain.com`) and `MCP_OAUTH_JWT_SECRET` (`openssl rand -hex 32`). Optionally `MCP_OAUTH_PASSWORD` for a shared team password on the consent screen. See step 5. Nothing to register in Google Cloud — Claude self-registers via DCR.
 - Google auth — pick the mode you set up in step 1:
   - **OAuth:** `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` (from `npm run oauth:login`). If these three are set, the server uses OAuth.
   - **Service account** (used when the OAuth vars are absent): set **one** of `GOOGLE_APPLICATION_CREDENTIALS` (path to JSON key — best for Docker/VPS), `GOOGLE_CREDENTIALS_JSON` (raw JSON), or `GOOGLE_CREDENTIALS_BASE64` (`base64 -w0 service-account.json`).
@@ -193,6 +194,17 @@ claude mcp add --transport http seo https://domain.com/mcp \
 }
 ```
 
+**Browser (claude.ai custom connector)** — requires the browser-OAuth vars from
+step 2 (`MCP_PUBLIC_URL` + `MCP_OAUTH_JWT_SECRET`). The browser dialog needs
+OAuth, so a static header won't work; the built-in OAuth server handles it:
+
+1. *Settings → Connectors → Add custom connector* (Team/Enterprise: *Admin
+   settings → Connectors*). Enter `https://domain.com/mcp`.
+2. In **Advanced settings**, leave **OAuth Client ID/Secret blank** — Claude
+   registers itself automatically. Click **Add**, then **Connect**.
+3. A consent screen hosted by the server appears; the user enters
+   `MCP_OAUTH_PASSWORD` or any `MCP_AUTH_TOKENS` value to approve.
+
 Then ask Claude things like:
 - “List our Search Console sites.”
 - “For `sc-domain:example.com`, top 20 queries by clicks over the last 28 days.”
@@ -208,6 +220,7 @@ Then ask Claude things like:
 - **Read-only** Google scopes; the server exposes no write tools.
 - Keep the service-account key, OAuth refresh token, and `.env` out of git (already in `.gitignore`).
 - All clients share one identity's view of the data (the OAuth central account, or the service account). For true per-user permissions you'd give each user their own OAuth login — a larger change, not covered here.
+- **Built-in OAuth server** (browser connectors) is a *gate*, not a per-user identity: the consent screen just checks `MCP_OAUTH_PASSWORD` / `MCP_AUTH_TOKENS`. Its tokens are stateless, HMAC-signed with `MCP_OAUTH_JWT_SECRET` (keep it secret; rotating it invalidates all issued tokens), short-lived (access ~1h), and cannot be individually revoked before expiry. Access tokens are bound to this server's resource URL (`aud`).
 
 ---
 
@@ -220,8 +233,11 @@ src/
   google/gsc.ts         Search Console wrapper (sites, search analytics)
   google/ga4.ts         GA4 Data + Admin wrappers (report, realtime, metadata, list)
   mcp/server.ts         builds the MCP server, registers the 6 tools
+  oauth/tokens.ts       signed stateless OAuth artefacts (client ids, codes, tokens)
+  oauth/provider.ts     OAuthServerProvider impl (DCR, code/token exchange, verify)
+  oauth/consent.ts      consent screen + POST /oauth/consent handler
   scripts/oauth-login.ts one-time refresh-token grabber (npm run oauth:login)
-  index.ts              Express app: bearer auth, /mcp (stateless), /healthz
+  index.ts              Express app: bearer auth, optional OAuth server, /mcp, /healthz
 Dockerfile, docker-compose.yml, Caddyfile   deployment
 .env.example                                 configuration template
 ```
@@ -231,6 +247,8 @@ Dockerfile, docker-compose.yml, Caddyfile   deployment
 | Symptom | Fix |
 |--------|-----|
 | `401 Unauthorized` | Token missing/wrong. Check the `Authorization: Bearer` header vs `MCP_AUTH_TOKENS`. |
+| Browser connector: "couldn't register" / OAuth error | Set `MCP_PUBLIC_URL` + `MCP_OAUTH_JWT_SECRET` and restart (that mounts the OAuth server). Leave OAuth Client ID/Secret blank in the dialog. |
+| Consent screen rejects the credential | Enter `MCP_OAUTH_PASSWORD` or a value from `MCP_AUTH_TOKENS`. |
 | `Invalid Host header` | Add the exact host (with port if any) clients send to `MCP_ALLOWED_HOSTS`. |
 | Tool returns a permission error | Add the active identity (OAuth central account, or the service-account email — see the startup log) to that GSC/GA4 property. |
 | `invalid_client` / `invalid_grant` | OAuth client id/secret wrong, or the refresh token expired (publish the OAuth app to Production, then re-run `npm run oauth:login`). |

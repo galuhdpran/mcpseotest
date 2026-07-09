@@ -51,6 +51,32 @@ export const config = {
     .map((h) => h.trim())
     .filter(Boolean),
 
+  /**
+   * Built-in OAuth authorization server, used only to let browser custom
+   * connectors on claude.ai connect (they require OAuth, not a static token).
+   * Enabled when MCP_PUBLIC_URL + MCP_OAUTH_JWT_SECRET are both set; otherwise
+   * the server keeps its static-token-only behaviour.
+   *
+   * NOTE: this is unrelated to `google.oauth` below — that authenticates the
+   * server TO Google; this authenticates Claude TO the server.
+   */
+  oauth: (() => {
+    const publicUrl = optional('MCP_PUBLIC_URL')?.replace(/\/+$/, '');
+    const jwtSecret = optional('MCP_OAUTH_JWT_SECRET');
+    return {
+      /** Public origin of this server, e.g. https://mcpseotest.revincolabs.com */
+      publicUrl,
+      /** Canonical resource identifier = the MCP endpoint the user connects to. */
+      resource: publicUrl ? `${publicUrl}/mcp` : undefined,
+      /** HMAC secret for signing OAuth artefacts (client ids, codes, tokens). */
+      jwtSecret,
+      /** Optional shared team password accepted on the consent screen. */
+      loginPassword: optional('MCP_OAUTH_PASSWORD'),
+      /** Whether the OAuth authorization server is mounted. */
+      enabled: Boolean(publicUrl && jwtSecret),
+    };
+  })(),
+
   google: {
     /**
      * Service-account credentials. Provide exactly one of:

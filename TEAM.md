@@ -5,9 +5,9 @@ Server: `https://mcpseotest.revincolabs.com/mcp`
 Kamu butuh **token** pribadimu (minta ke admin). Pilih cara sesuai aplikasi
 Claude yang kamu pakai.
 
-> ⚠️ **JANGAN** pakai tombol "Add custom connector" di browser claude.ai —
-> itu wajib OAuth dan tidak akan jalan dengan token kita. Pakai salah satu cara
-> di bawah.
+> Pilih **A** (Claude Code), **B** (Desktop), atau **C** (browser claude.ai).
+> Cara A & B pakai token pribadimu sebagai header. Cara C lewat OAuth: kamu
+> tidak menempel token, tapi mengetik password/token sekali di layar consent.
 
 ---
 
@@ -66,6 +66,31 @@ Cek: buka terminal, ketik `node -v` → harus muncul nomor versi.
 
 ---
 
+## C. Browser claude.ai (OAuth)
+
+Server ini sudah punya OAuth sendiri, jadi "Add custom connector" di browser
+kini jalan. Kamu **tidak** memasukkan token sebagai header — cukup ketik
+password tim / token pribadimu di layar consent yang muncul.
+
+1. Buka menu Connectors:
+   - **Team/Enterprise:** Admin settings → **Connectors** → **Add custom connector**
+     (harus Owner; member lalu klik **Connect**).
+   - **Free/Pro/Max:** Settings → **Connectors** → **Add custom connector**.
+2. **URL:** `https://mcpseotest.revincolabs.com/mcp`
+3. Buka **Pengaturan lanjutan** dan **biarkan OAuth Client ID & Secret KOSONG**
+   (Claude mendaftar sendiri otomatis). Klik **Tambahkan**.
+4. Klik **Connect**. Akan terbuka **layar consent milik server** bertuliskan
+   _"Sambungkan ke SEO MCP"_.
+5. Masukkan **password tim** (dari admin) **atau token pribadimu**, klik
+   **Setujui & sambungkan**. Kamu akan diarahkan balik ke claude.ai, tersambung.
+6. Aktifkan di chat lewat tombol **"+"** → Connectors.
+
+> Layar consent hanya muncul kalau OAuth sudah diaktifkan di server
+> (admin mengeset `MCP_PUBLIC_URL` + `MCP_OAUTH_JWT_SECRET`). Kalau belum,
+> pakai cara A/B dulu.
+
+---
+
 ## Cara pakai (contoh prompt)
 
 Setelah connect, tanya Claude natural language:
@@ -89,4 +114,6 @@ Tools yang tersedia:
 | `401 Unauthorized` | Token salah/kurang. Cek `Authorization: Bearer` dan token kamu. |
 | Data kosong / error permission | Service account belum ditambahkan ke properti GSC/GA4 itu. Hubungi admin. |
 | Claude Desktop: server tidak muncul | Pastikan Node.js terinstall, JSON valid (tidak ada koma nyasar), lalu restart total. |
-| "Add connector" di browser gagal | Memang tidak didukung — pakai cara A atau B di atas. |
+| "Add connector" di browser error "tidak dapat mendaftar" | OAuth belum aktif di server. Admin set `MCP_PUBLIC_URL` + `MCP_OAUTH_JWT_SECRET`, lalu ulangi cara **C**. |
+| Cara C: layar consent bilang "password/token salah" | Masukkan `MCP_OAUTH_PASSWORD` atau salah satu token di `MCP_AUTH_TOKENS`. Minta ke admin. |
+| Cara C: OAuth Client ID/Secret diminta wajib | Jangan diisi — biarkan kosong. Klik Tambahkan saja. |
