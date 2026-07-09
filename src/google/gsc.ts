@@ -6,13 +6,19 @@
  * searchanalytics.query endpoint).
  */
 import { google, searchconsole_v1 } from 'googleapis';
-import { getGoogleAuth } from './auth.js';
+import { getUnifiedAuthClient } from './auth.js';
 
 let cachedClient: searchconsole_v1.Searchconsole | null = null;
 
 function client(): searchconsole_v1.Searchconsole {
   if (cachedClient) return cachedClient;
-  cachedClient = google.searchconsole({ version: 'v1', auth: getGoogleAuth() });
+  // Works for both an OAuth2 client and a service-account GoogleAuth instance.
+  cachedClient = google.searchconsole({
+    version: 'v1',
+    auth: getUnifiedAuthClient() as Parameters<
+      typeof google.searchconsole
+    >[0]['auth'],
+  });
   return cachedClient;
 }
 

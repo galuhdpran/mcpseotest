@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import * as gsc from '../google/gsc.js';
 import * as ga4 from '../google/ga4.js';
-import { getServiceAccountEmail } from '../google/auth.js';
+import { getIdentityLabel } from '../google/auth.js';
 
 /** Wrap any JSON-serialisable value as an MCP text result. */
 function jsonResult(data: unknown): CallToolResult {
@@ -30,16 +30,8 @@ function errorResult(error: unknown, hint?: string): CallToolResult {
 }
 
 const PERMISSION_HINT =
-  'If this is a permission error, make sure the service account ' +
-  `(${safeEmail()}) has been added to the GSC property / GA4 account.`;
-
-function safeEmail(): string {
-  try {
-    return getServiceAccountEmail();
-  } catch {
-    return 'the service account';
-  }
-}
+  'If this is a permission error, make sure ' +
+  `${getIdentityLabel()} has been added to the GSC property / GA4 account.`;
 
 export function buildServer(): McpServer {
   const server = new McpServer(

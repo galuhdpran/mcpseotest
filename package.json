@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
+    "oauth:login": "tsx src/scripts/oauth-login.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

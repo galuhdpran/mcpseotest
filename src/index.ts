@@ -10,7 +10,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 
 import { config } from './config.js';
 import { buildServer } from './mcp/server.js';
-import { getServiceAccountEmail } from './google/auth.js';
+import { getAuthMode, getIdentityLabel } from './google/auth.js';
 
 const app = express();
 app.use(express.json({ limit: '4mb' }));
@@ -102,7 +102,7 @@ app.listen(config.port, () => {
   console.log(`  Health check:   GET  /healthz`);
   console.log(`  Allowed hosts:  ${config.allowedHosts.join(', ')}`);
   try {
-    console.log(`  Service account: ${getServiceAccountEmail()}`);
+    console.log(`  Google auth:    ${getAuthMode()} — ${getIdentityLabel()}`);
   } catch (error) {
     console.warn(
       `  WARNING: could not load Google credentials at startup: ` +

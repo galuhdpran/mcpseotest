@@ -61,6 +61,19 @@ export const config = {
     credentialsJson: optional('GOOGLE_CREDENTIALS_JSON'),
     credentialsBase64: optional('GOOGLE_CREDENTIALS_BASE64'),
     credentialsPath: optional('GOOGLE_APPLICATION_CREDENTIALS'),
+
+    /**
+     * OAuth2 "central account" credentials. When all three are set, the server
+     * authenticates AS that Google account (e.g. the agency's shared Gmail that
+     * clients add as a Viewer) instead of using the service account.
+     *
+     * Get a refresh token with: npm run oauth:login
+     */
+    oauth: {
+      clientId: optional('GOOGLE_OAUTH_CLIENT_ID'),
+      clientSecret: optional('GOOGLE_OAUTH_CLIENT_SECRET'),
+      refreshToken: optional('GOOGLE_OAUTH_REFRESH_TOKEN'),
+    },
   },
 } as const;
 

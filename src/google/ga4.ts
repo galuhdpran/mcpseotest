@@ -6,26 +6,44 @@
  */
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import { AnalyticsAdminServiceClient } from '@google-analytics/admin';
-import { getAnalyticsClientCredentials, GOOGLE_SCOPES } from './auth.js';
+import type { ClientOptions } from 'google-gax';
+import {
+  getAnalyticsClientCredentials,
+  getAuthMode,
+  getOAuthClient,
+  GOOGLE_SCOPES,
+} from './auth.js';
 
 let dataClient: BetaAnalyticsDataClient | null = null;
 let adminClient: AnalyticsAdminServiceClient | null = null;
 
-function data(): BetaAnalyticsDataClient {
-  if (dataClient) return dataClient;
-  dataClient = new BetaAnalyticsDataClient({
+/**
+ * Build the constructor options for the GA4 gRPC clients depending on auth mode.
+ *  - oauth           → pass the OAuth2 client as `authClient` (gax option).
+ *  - service_account → pass plain credentials + scopes (original behaviour).
+ */
+function clientOptions(): ClientOptions {
+  if (getAuthMode() === 'oauth') {
+    // The OAuth2Client comes from the top-level google-auth-library, while gax
+    // types against its own bundled copy — same runtime class, different type
+    // identity, so cast through unknown.
+    return { authClient: getOAuthClient() } as unknown as ClientOptions;
+  }
+  return {
     credentials: getAnalyticsClientCredentials(),
     scopes: GOOGLE_SCOPES,
-  });
+  };
+}
+
+function data(): BetaAnalyticsDataClient {
+  if (dataClient) return dataClient;
+  dataClient = new BetaAnalyticsDataClient(clientOptions());
   return dataClient;
 }
 
 function admin(): AnalyticsAdminServiceClient {
   if (adminClient) return adminClient;
-  adminClient = new AnalyticsAdminServiceClient({
-    credentials: getAnalyticsClientCredentials(),
-    scopes: GOOGLE_SCOPES,
-  });
+  adminClient = new AnalyticsAdminServiceClient(clientOptions());
   return adminClient;
 }
 
