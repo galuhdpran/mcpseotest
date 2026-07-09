@@ -6,7 +6,7 @@ Analytics 4** data. Deploy it once at `https://domain.com/mcp`, hand each
 teammate a bearer token, and they can query GSC & GA4 from Claude.
 
 - **Transport:** Streamable HTTP (stateless), the current MCP standard
-- **Auth to the endpoint:** shared bearer token(s) for CLI/Desktop, **plus** an optional built-in OAuth server so browser custom connectors on claude.ai can connect
+- **Auth to the endpoint:** built-in OAuth server for browser custom connectors on claude.ai; **optional** static bearer token(s) for Claude Code CLI / Desktop
 - **Auth to Google:** OAuth central account (recommended for agencies) **or** a service account
 - **Runtime:** Node 20+ / TypeScript, `@modelcontextprotocol/sdk` v1
 
@@ -93,7 +93,7 @@ cp .env.example .env
 
 Edit `.env`:
 
-- `MCP_AUTH_TOKENS` — one or more bearer tokens (comma-separated). Generate with `openssl rand -hex 32`. Give a different token to each teammate so you can revoke individually.
+- `MCP_AUTH_TOKENS` — **optional** static bearer tokens (comma-separated) for CLI/Desktop; generate with `openssl rand -hex 32`, one per teammate to revoke individually. Leave unset to allow **OAuth-only** access (browser connectors); if you do, you must set `MCP_OAUTH_PASSWORD` for the consent screen.
 - `MCP_ALLOWED_HOSTS` — your public host as clients send it. Behind HTTPS on your domain that's just `domain.com` (no port). For local testing use `localhost:3000,127.0.0.1:3000`.
 - **Browser OAuth (optional)** — only needed to add the server via the *Add custom connector* dialog in the claude.ai browser app (that dialog requires OAuth; CLI/Desktop don't need this). Set `MCP_PUBLIC_URL` (this server's public origin, e.g. `https://domain.com`) and `MCP_OAUTH_JWT_SECRET` (`openssl rand -hex 32`). Optionally `MCP_OAUTH_PASSWORD` for a shared team password on the consent screen. See step 5. Nothing to register in Google Cloud — Claude self-registers via DCR.
 - Google auth — pick the mode you set up in step 1:
@@ -134,11 +134,17 @@ TLS cert automatically). On a VPS with Docker and your domain's DNS pointing at 
 ```bash
 # 1. Configure
 cp .env.example .env
-#    set MCP_AUTH_TOKENS=... and MCP_ALLOWED_HOSTS=domain.com
-#    OAuth mode:  set the three GOOGLE_OAUTH_* vars (no key file needed)
-#    Service acct: also do step 1b below
+#    set MCP_ALLOWED_HOSTS=domain.com
+#    Google (OAuth central account): set the three GOOGLE_OAUTH_* vars (no key file)
+#    Browser connector (OAuth): set MCP_PUBLIC_URL + MCP_OAUTH_JWT_SECRET (+ MCP_OAUTH_PASSWORD)
+#    MCP_AUTH_TOKENS is optional (only for CLI/Desktop static-header access)
+#    Google via service account instead? see step 1b below
 
-# 1b. (Service-account mode only) put the key file here (git-ignored):
+# 1b. (Service-account mode only) The default docker-compose.yml no longer mounts
+#     secrets. Re-add to the mcp service:
+#       environment: - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/service-account.json
+#       volumes:     - ./secrets:/app/secrets:ro
+#     then drop the key file in place:
 mkdir -p secrets && cp /path/to/service-account.json secrets/service-account.json
 
 # 2. Point Caddy at your domain
@@ -173,9 +179,11 @@ curl https://domain.com/healthz               # -> {"status":"ok"}
 
 ## 5. Connect a team member's Claude
 
-Each teammate adds the remote server with their bearer token.
+Two ways to connect: the **browser** (OAuth — nothing to paste, works whenever
+the OAuth vars are set) or **Claude Code CLI / Desktop** with a static header
+(**only if `MCP_AUTH_TOKENS` is set** — otherwise use the browser).
 
-**Claude Code (CLI):**
+**Claude Code (CLI)** — requires `MCP_AUTH_TOKENS`:
 ```bash
 claude mcp add --transport http seo https://domain.com/mcp \
   --header "Authorization: Bearer THEIR_TOKEN_HERE"
@@ -215,7 +223,7 @@ Then ask Claude things like:
 
 ## Security notes
 
-- **Bearer tokens** are compared in constant time; use long random values and rotate by editing `MCP_AUTH_TOKENS` and restarting.
+- **Static bearer tokens** (`MCP_AUTH_TOKENS`) are optional and compared in constant time; use long random values, rotate by editing the var and restarting, or omit entirely to require OAuth for all clients.
 - **DNS-rebinding protection** is on; the `Host` header must be in `MCP_ALLOWED_HOSTS`.
 - **Read-only** Google scopes; the server exposes no write tools.
 - Keep the service-account key, OAuth refresh token, and `.env` out of git (already in `.gitignore`).

@@ -1,10 +1,13 @@
 # Runs the MCP server behind Caddy, which terminates TLS and serves it at
 # https://domain.com/mcp with an automatically-managed certificate.
 #
-#   1. Put your service-account key at ./secrets/service-account.json
-#   2. Copy .env.example -> .env and fill it in (set MCP_ALLOWED_HOSTS=domain.com)
-#   3. Edit Caddyfile: replace domain.com with your real domain
-#   4. docker compose up -d --build
+#   1. Copy .env.example -> .env and fill it in (set MCP_ALLOWED_HOSTS=domain.com,
+#      the GOOGLE_OAUTH_* central-account vars, and the OAuth-server vars).
+#   2. Edit Caddyfile: replace domain.com with your real domain
+#   3. docker compose up -d --build
+#
+# (Using a Google service account instead? Re-add the GOOGLE_APPLICATION_CREDENTIALS
+#  env var + a `./secrets:/app/secrets:ro` volume, and drop the key file in ./secrets.)
 
 services:
   mcp:
@@ -13,9 +16,6 @@ services:
     env_file: .env
     environment:
       - PORT=3000
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/service-account.json
-    volumes:
-      - ./secrets:/app/secrets:ro
     expose:
       - "3000"
 

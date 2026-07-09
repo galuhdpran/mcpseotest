@@ -21,19 +21,20 @@ function optional(name: string): string | undefined {
 }
 
 /**
- * Bearer tokens accepted by the /mcp endpoint. Comma-separated so you can
- * issue one token per teammate and revoke individually.
+ * Static bearer tokens accepted by the /mcp endpoint (comma-separated), and
+ * also accepted as a credential on the OAuth consent screen.
+ *
+ * OPTIONAL: leave MCP_AUTH_TOKENS unset to disable static-token access entirely
+ * so the server is reachable only via the OAuth flow (browser connectors). When
+ * unset, MCP_OAUTH_PASSWORD becomes the consent credential (see the guard below).
  */
 function parseTokens(): string[] {
-  const raw = required('MCP_AUTH_TOKENS');
-  const tokens = raw
+  const raw = optional('MCP_AUTH_TOKENS');
+  if (!raw) return [];
+  return raw
     .split(',')
     .map((t) => t.trim())
     .filter((t) => t.length > 0);
-  if (tokens.length === 0) {
-    throw new Error('MCP_AUTH_TOKENS must contain at least one non-empty token.');
-  }
-  return tokens;
 }
 
 export const config = {
@@ -102,5 +103,25 @@ export const config = {
     },
   },
 } as const;
+
+// --- Validation ------------------------------------------------------------
+// There must be at least one way to authenticate to /mcp.
+if (config.authTokens.length === 0 && !config.oauth.enabled) {
+  throw new Error(
+    'No endpoint auth configured. Set MCP_AUTH_TOKENS, or enable OAuth by ' +
+      'setting MCP_PUBLIC_URL and MCP_OAUTH_JWT_SECRET. See .env.example.',
+  );
+}
+// With static tokens disabled, the OAuth consent screen needs a password.
+if (
+  config.oauth.enabled &&
+  config.authTokens.length === 0 &&
+  !config.oauth.loginPassword
+) {
+  throw new Error(
+    'OAuth is enabled and MCP_AUTH_TOKENS is empty, so the consent screen has ' +
+      'no credential to accept. Set MCP_OAUTH_PASSWORD. See .env.example.',
+  );
+}
 
 export type Config = typeof config;
